@@ -1,0 +1,53 @@
+/* Scrollbar width */
+::-webkit-scrollbar {
+    width: 1.9em;
+  }
+  
+  ::-webkit-scrollbar-button {
+    background-color: var(--c3);
+    background-size: 1em;
+    background-repeat: no-repeat;
+    background-position: center center;
+    height: 1.9em;
+    width: 1.9em;
+    
+  }
+  /* UP */
+  ::-webkit-scrollbar-button:start:decrement {
+   background-image: url(../caret-up-solid.svg);
+   background-color: var(--c4);
+   border: 1px solid var(--c2);
+   
+  }
+/* UP HOVER   */
+  ::-webkit-scrollbar-button:start:decrement:hover {
+    background-image: url(../caret-up-solid.svg);
+    background-color: var(--c5);
+    border: 1px solid var(--c2);
+   }
+/* DOWN */
+   ::-webkit-scrollbar-button:end:increment {
+    background-image: url(../caret-down-solid.svg);
+    background-color: var(--c4);
+    border: 1px solid var(--c2);
+  }
+  /* DOWN HOVER */
+  ::-webkit-scrollbar-button:end:increment:hover {
+    background-image: url(../caret-down-solid.svg);
+    background-color: var(--c5);
+    border: 1px solid var(--c2);
+  }
+
+     /* Handle */
+  ::-webkit-scrollbar-thumb {
+    background: var(--c4); 
+    border-left: 1px solid var(--c2);
+    border-right: 1px solid var(--c2);
+  }
+
+  /* Handle on hover */
+  ::-webkit-scrollbar-thumb:hover{
+    background: var(--c5); 
+    border-left: 1px solid var(--c2);
+    border-right: 1px solid var(--c2);
+  }

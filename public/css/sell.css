@@ -1,0 +1,38 @@
+.button-bar-one{
+  background-color: var(--c2);
+  grid-column: span 3;
+  box-shadow: 5px 5px var(--c3);
+}
+
+.button-bar-two{
+  background-color: var(--c2);
+  grid-column: span 3;
+  box-shadow: 5px 5px var(--c3);
+}
+
+.left{
+    background-color: var(--c2);
+    grid-column: span 6;
+  }
+  
+  .right{
+    background-color: var(--c2);
+    grid-column: span 6;
+    box-shadow: 5px 5px var(--c3);
+  }  
+  
+  .stock-table{
+    background-color: var(--c2);
+    grid-column: span 12;
+    box-shadow: 5px 5px var(--c3);
+  }
+
+  .button-bar-one{
+    background-color: var(--c2);
+  }
+  
+  .button-bar-two{
+    background-color: var(--c2);
+  }
+
+  
