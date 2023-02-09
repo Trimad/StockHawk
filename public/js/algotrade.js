@@ -9,7 +9,7 @@ let filterStopLoss, filterTakeProfit, filterPanicPrice;
 
 var tickers = [], tickersFiltered = [];
 var positions = [], positionsFiltered = [];
-var market;
+var is_open;
 var accountActivity = [];
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -95,11 +95,11 @@ function draw() {
                     promiseC.then(resC => {
                         positions = resC;
                         Trade.filterPositions();//debugging
-                        if (sell && market === "open") {
+                        if (sell && is_open === "open") {
                             Trade.filterPositions().sell();
                         }
                         Trade.filterTickers();//debugging
-                        if (buy && market === "open") {
+                        if (buy && is_open === "open") {
                             Trade.filterTickers().buy();
                         }
                     });
@@ -110,19 +110,19 @@ function draw() {
 }
 
 function getMarketStatus() {
-    let promise = getData("http://localhost:3000/marketstatus");
+    let promise = getData("http://localhost:3000/clock");
     promise.then(response => {
 
         //If the market status changes,
-        if (market !== response.market) {
+        if (is_open !== response.is_open) {
             //set global variable market to the new status,
-            market = response.market;
+            is_open = response.is_open;
             //then change the color of the feather.
-            if (market === "open") {
+            if (is_open) {
                 document.getElementById('feather').classList.add("open");
                 document.getElementById('feather').classList.remove("closed");
                 document.getElementById('feather').classList.remove("other");
-            } else if (market === "closed") {
+            } else if (!is_open) {
                 document.getElementById('feather').classList.remove("open");
                 document.getElementById('feather').classList.add("closed");
                 document.getElementById('feather').classList.remove("other");

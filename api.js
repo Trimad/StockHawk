@@ -9,24 +9,35 @@ app.use(express.static('public')); //enable all CORS requests
 app.use(bodyParser.urlencoded({ extended: true })); //enable POST requests
 
 let COMMAND = process.argv;
+
+if (!fs.existsSync("data")) {
+    fs.mkdirSync("data");
+}
+
 const server = app.listen(3000, () => {
-    function init() {
-        for (c of COMMAND) {
+    const init = () => {
+        for (const c of COMMAND) {
             console.log(c);
-            if (c == "live") {
+            if (c === "live") {
                 DEBUG = false;
-                console.log('\x1b[31m%s\x1b[0m', 'YOU ARE TRADING WITH REAL CURRENCY');  //cyan
-            } else if (c == "test" || c == "debug") {
+                console.log('\x1b[31m%s\x1b[0m', 'YOU ARE TRADING WITH REAL CURRENCY');
+                console.log('\x1b[33m%s\x1b[0m', 'http://localhost:3000');
+            } else if (c === "test" || c === "debug") {
                 DEBUG = true;
-                console.log('\x1b[33m%s\x1b[0m', 'YOU ARE TRADING WITH PAPER CURRENCY');  //cyan 
+                console.log('\x1b[33m%s\x1b[0m', 'YOU ARE TRADING WITH PAPER CURRENCY');
+                console.log('\x1b[33m%s\x1b[0m', 'http://localhost:3000');
             }
         }
-        CLIENT_ID = DEBUG ? CONFIG.alpaca.paper.apiKey : CONFIG.alpaca.live.apiKey;
-        CLIENT_SECRET = DEBUG ? CONFIG.alpaca.paper.secretKey : CONFIG.alpaca.live.secretKey;
-        BASE_URL = DEBUG ? CONFIG.alpaca.paper.baseUrl : CONFIG.alpaca.live.baseUrl;
-    }
+
+        POLYGON_KEY = CONFIG.polygon.apiKey;
+        const { apiKey, secretKey, baseUrl } = DEBUG ? CONFIG.alpaca.paper : CONFIG.alpaca.live;
+        CLIENT_ID = apiKey;
+        CLIENT_SECRET = secretKey;
+        BASE_URL = baseUrl;
+    };
     init();
 });
+
 
 const storeData = (data, path) => {
     try {
@@ -45,8 +56,7 @@ const loadData = (path) => {
     }
 }
 
-const CONFIG = JSON.parse(loadData("config.json"));
-
+const CONFIG = JSON.parse(loadData("config.json")); //API keys and stuff
 
 let DEBUG;
 let CLIENT_ID;
@@ -59,52 +69,98 @@ const map = function (n, start1, stop1, start2, stop2) {
 
 /*****************************************************************
  * API: Alpaca
- * Description: 
- * Usage: 
+ * Description: Returns status about the active acocount
+ * Last Modified: 2023-02-09
+ * Usage: localhost:3000/account
  *****************************************************************/
 app.get('/account', (request, response) => {
     console.log('\x1b[36m%s\x1b[0m', request.url, new Date().toLocaleString());
 
-    let url = BASE_URL + "/v2/account";
-    let req = unirest("GET", url);
-
-    req.headers({
-        "APCA-API-KEY-ID": CLIENT_ID,
-        "APCA-API-SECRET-KEY": CLIENT_SECRET
-    }).then((res) => {
-        delete res.body['id'];
-        delete res.body['account_number'];
-        delete res.body['created_at'];
-        response.send(res.body);
-    });
+    unirest.get(`${BASE_URL}/v2/account`)
+        .headers({
+            "APCA-API-KEY-ID": CLIENT_ID,
+            "APCA-API-SECRET-KEY": CLIENT_SECRET
+        })
+        .then(res => {
+            const { body } = res;
+            delete body.id;
+            delete body.account_number;
+            delete body.created_at;
+            response.send(body);
+        });
 });
 
 /*****************************************************************
  * API: Alpaca
- * Description: 
+ * Description: Returns all of today's trading activity.
+ * Last Modified: 2023-02-09
+ * Usage: localhost:3000/account/activity
  *****************************************************************/
 app.get('/account/activity', (request, response) => {
-    console.log('\x1b[36m%s\x1b[0m', request.url, new Date().toLocaleString());
-    var date = new Date(); // Or the date you'd like converted.
+    let date = new Date();
     let today = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
-    let url = BASE_URL + "/v2/account/activities?date=" + today;
-    let req = unirest("GET", url);
+    unirest.get(`${BASE_URL}/v2/account/activities?date=` + today)
+        .headers({
+            "APCA-API-KEY-ID": CLIENT_ID,
+            "APCA-API-SECRET-KEY": CLIENT_SECRET
+        })
+        .end((res) => {
+            response.send(res.body);
+        });
+});
 
-    req.headers({
-        "APCA-API-KEY-ID": CLIENT_ID,
-        "APCA-API-SECRET-KEY": CLIENT_SECRET
-    }).then((res) => {
-        response.send(res.body);
-    });
+/*****************************************************************
+ * API: Polygon
+ * Description: 1. Returns market status of open or closed
+ *              2. MADE OBSOLETE BY localhost:3000/clock
+ * Last Modified: 2023-02-09
+ * Usage: localhost:3000/marketstatus
+ *****************************************************************/
+// app.get('/marketstatus', (request, response) => {
+//     console.log('\x1b[36m%s\x1b[0m', request.url, new Date().toLocaleString());
 
+//     let url = CONFIG.polygon.baseUrl + "/v1/marketstatus/now";
+//     let req = unirest("GET", url);
+
+//     req.query({
+//         "apiKey": POLYGON_KEY
+//     }).then((res) => {
+
+//         if (res == undefined) {
+//             console.log('\x1b[31m%s\x1b[0m', res);
+//             response.send({ "market": "error" });
+//         } else {
+//             response.send(res.body);
+//         }
+
+//     });
+
+// });
+
+/*****************************************************************
+ * API: Alpaca
+ * Description: 1. Returns an object with an "is_open" property.
+ * Documentation: https://alpaca.markets/docs/api-documentation/api-v2/clock
+ * Last Modified: 2023-02-09
+ * Usage: localhost:3000/clock
+ *****************************************************************/
+app.get('/clock', (request, response) => {
+    console.log('\x1b[36m%s\x1b[0m', request.url, new Date().toLocaleString());
+
+    unirest.get(`${BASE_URL}/v2/clock`)
+        .headers({
+            "APCA-API-KEY-ID": CLIENT_ID,
+            "APCA-API-SECRET-KEY": CLIENT_SECRET
+        })
+        .then(res => response.send(res.body));
 });
 
 /*****************************************************************
  * API: Alpaca
- * Created: 28FEB2021
  * Description: 1. Returns an array of every asset that can be traded on Alapca.
  *              2. Saves an array of all tradable stock symbols as /data/symbols.json.
  * Documentation: https://alpaca.markets/docs/api-documentation/api-v2/assets/
+ * Last Modified: 2023-02-09
  * Usage: localhost:3000/assets
  *****************************************************************/
 app.get('/assets', (request, response) => {
@@ -185,28 +241,6 @@ app.get('/buy/:symbol/:quantity', (request, response) => {
 
 });
 
-/*****************************************************************
- * API: Alpaca
- * Created: 28FEB2021
- * Description: 1. Returns an object with an "is_open" property.
- * Documentation: https://alpaca.markets/docs/api-documentation/api-v2/clock
- * Usage: localhost:3000/clock
- *****************************************************************/
-app.get('/clock', (request, response) => {
-    console.log(request.url, new Date().toLocaleString());
-
-    let url = BASE_URL + "/v2/clock";
-    let req = unirest("GET", url);
-
-    req.headers({
-        "APCA-API-KEY-ID": CLIENT_ID,
-        "APCA-API-SECRET-KEY": CLIENT_SECRET
-    }).then((res) => {
-        response.send(res.body);
-    });
-
-});
-
 app.get('/delete/:id', (request, response) => {
     console.log('\x1b[36m%s\x1b[0m', request.url, new Date().toLocaleString());
     let id = request.params.id;
@@ -225,6 +259,11 @@ app.get('/delete/:id', (request, response) => {
 
 });
 
+
+/**
+ * Last Modified: 2023-02-09
+ * Usage: localhost:3000/assets
+ */
 app.get('/history/debug', (request, response) => {
     console.log('\x1b[36m%s\x1b[0m', request.url, new Date().toLocaleString());
     let rawResponse = fs.readFileSync("data/schema.json");
@@ -262,7 +301,7 @@ app.get('/history/erase', (request, response) => {
 
     try {
         let processed = buildSchema(parsed);
-        fs.writeFileSync("data\\schema.json", JSON.stringify(processed));
+        fs.writeFileSync("data/schema.json", JSON.stringify(processed));
         response.status(204).end();
     } catch (err) {
         console.error(err);
@@ -289,13 +328,15 @@ app.get('/history/save', (request, response) => {
 });
 
 /**********************************************************************************************
+ * API: Polygon
+ * Description: !!!THE POLYGON API IS NO LONGER FREE AND THIS FUNCTION IS BROKEN!!!
  * Step 1. Get updated data on all tickers. Load the schema. Parse both to JSON.
  * Step 2a. Push the most current high, low, open, close, volume and time to the schema arrays.
  * Step 2b. If the array is greater than maxSize, shift the array.
  * Step 3a. Get the min-max of the closing price and unix time of every stock.
  * Step 3b. Normalize the close array and time aray between 0 and 1.
  * Step 3c. Conduct a polynomial regression of all points.
- * Step 4. Write the udpated schema to json file.
+ * Step 4. Write the updated schema to json file.
  * Step 5. Send the updated schema as a response.
  **********************************************************************************************/
 app.get('/history/update', (request, response) => {
@@ -441,27 +482,6 @@ app.get('/positions', (request, response) => {
 
         response.send(res.body)
     });
-});
-
-app.get('/marketstatus', (request, response) => {
-    console.log('\x1b[36m%s\x1b[0m', request.url, new Date().toLocaleString());
-
-    let url = CONFIG.polygon.baseUrl + "/v1/marketstatus/now";
-    let req = unirest("GET", url);
-
-    req.query({
-        "apiKey": CLIENT_ID
-    }).then((res) => {
-
-        if (res == undefined) {
-            console.log('\x1b[31m%s\x1b[0m', res);
-            response.send({ "market": "error" });
-        } else {
-            response.send(res.body);
-        }
-
-    });
-
 });
 
 app.get('/sell/:symbol', (request, response) => {
